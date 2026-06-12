@@ -133,8 +133,14 @@ NUNCA invente artigos. Máximo 400 palavras.''';
     setState(() => _carregandoDir[i] = true);
     final d = _bloco1[i];
     try {
-      final resp = await http.get(Uri.parse(d.url))
-          .timeout(const Duration(seconds: 20));
+      final resp = await http.get(
+        Uri.parse(d.url),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 16; SM-M556B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'pt-BR,pt;q=0.9',
+        },
+      ).timeout(const Duration(seconds: 25));
       String html;
       try {
         html = utf8.decode(resp.bodyBytes);
