@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/supabase_config.dart';
@@ -10,33 +9,18 @@ const _uidKey = 'oab47-uid';
 const _tableName = 'progresso';
 
 class SyncService {
-  // Gera ou carrega UUID estável do dispositivo (idêntico ao web)
+  // ID fixo compartilhado — mesmo ID em web e Flutter (app pessoal)
+  // Web usa localStorage["oab47-uid"] ou "oab47pro_user_main" como fallback
   static Future<String> getUid() async {
     final prefs = await SharedPreferences.getInstance();
-    var uid = prefs.getString(_uidKey);
-    if (uid == null || uid.isEmpty) {
-      uid = _gerarUuid();
-      await prefs.setString(_uidKey, uid);
-    }
-    return uid;
+    final stored = prefs.getString(_uidKey);
+    if (stored != null && stored.isNotEmpty) return stored;
+    return 'oab47pro_user_main';
   }
 
   static Future<void> setUid(String uid) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_uidKey, uid);
-  }
-
-  static String _gerarUuid() {
-    final rng = Random.secure();
-    final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    String hex(int b) => b.toRadixString(16).padLeft(2, '0');
-    return '${hex(bytes[0])}${hex(bytes[1])}${hex(bytes[2])}${hex(bytes[3])}'
-        '-${hex(bytes[4])}${hex(bytes[5])}'
-        '-${hex(bytes[6])}${hex(bytes[7])}'
-        '-${hex(bytes[8])}${hex(bytes[9])}'
-        '-${hex(bytes[10])}${hex(bytes[11])}${hex(bytes[12])}${hex(bytes[13])}${hex(bytes[14])}${hex(bytes[15])}';
   }
 
   static Future<EstadoApp> loadLocal() async {

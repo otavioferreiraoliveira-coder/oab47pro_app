@@ -224,9 +224,8 @@ class EstadoApp {
       final id = c['id'] as String?;
       final localTs = (convMap[id]?['ts'] as num?)?.toInt() ?? 0;
       final remoteTs = (c['ts'] as num?)?.toInt() ?? 0;
-      if (!convMap.containsKey(id)) {
-        convMap[id] = c;
-      } else if (remoteTs > localTs) {
+      // Timestamp mais recente vence — incluindo tombstones (deleted:true)
+      if (!convMap.containsKey(id) || remoteTs > localTs) {
         convMap[id] = c;
       }
     }

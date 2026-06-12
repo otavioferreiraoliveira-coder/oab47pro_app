@@ -48,7 +48,7 @@ class _MentorScreenState extends State<MentorScreen> {
   void _inicializar() {
     if (!mounted) return;
     final app = context.read<AppProvider>();
-    final convs = app.estado.conversas;
+    final convs = app.estado.conversas.where((c) => c['deleted'] != true).toList();
     setState(() {
       if (_convAtual == null) {
         // Primeira abertura: carrega a conversa mais recente
@@ -112,12 +112,23 @@ class _MentorScreenState extends State<MentorScreen> {
 
   void _deletarConversa(String id) {
     final app = context.read<AppProvider>();
-    app.estado.conversas.removeWhere((c) => c['id'] == id);
+    final convs = app.estado.conversas;
+    final idx = convs.indexWhere((c) => c['id'] == id);
+    if (idx >= 0) {
+      // Tombstone: marca como deletado com ts novo — evita sync restaurar
+      convs[idx] = {
+        ...convs[idx],
+        'deleted': true,
+        'ts': DateTime.now().millisecondsSinceEpoch,
+      };
+    }
+    SyncService.saveLocal(app.estado);
     app.sincronizar();
+    final visiveis = convs.where((c) => c['deleted'] != true).toList();
     if (_convAtual?['id'] == id) {
       setState(() {
-        _convAtual = app.estado.conversas.isNotEmpty
-            ? Map<String, dynamic>.from(app.estado.conversas.first)
+        _convAtual = visiveis.isNotEmpty
+            ? Map<String, dynamic>.from(visiveis.first)
             : _novaConv();
       });
     } else {
@@ -229,7 +240,7 @@ DESEMPENHO DO ALUNO:
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => StatefulBuilder(builder: (ctx, setModal) {
-        final convs = app.estado.conversas;
+        final convs = app.estado.conversas.where((c) => c['deleted'] != true).toList();
         return SizedBox(
           height: MediaQuery.of(context).size.height * 0.7,
           child: Column(
