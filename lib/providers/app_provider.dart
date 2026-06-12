@@ -151,6 +151,19 @@ class AppProvider extends ChangeNotifier {
     return por;
   }
 
+  List<Map<String, dynamic>> prioridades() {
+    final stats = statsDisciplina().values.toList();
+    stats.sort((a, b) => b.prioridade.compareTo(a.prioridade));
+    return stats.map((s) => {
+      'disc': s.disc,
+      'nome': s.nome,
+      'bloco': s.bloco,
+      'peso': s.peso,
+      'resp': s.resp > 0 ? s.resp : null,
+      'taxa': s.taxa,
+    }).toList();
+  }
+
   KPIs kpis() {
     final rs = estado.respostas.values.toList();
     final total = rs.length;

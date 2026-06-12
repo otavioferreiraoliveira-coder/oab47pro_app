@@ -15,7 +15,10 @@ class ConfigScreen extends StatefulWidget {
 class _ConfigScreenState extends State<ConfigScreen> {
   final _nomeCtrl = TextEditingController();
   final _geminiCtrl = TextEditingController();
+  final _deepseekCtrl = TextEditingController();
   String _modelo = 'gemini-2.0-flash';
+  String _deepseekModelo = 'deepseek-chat';
+  String _aiProvider = 'gemini';
   bool _salvando = false;
 
   @override
@@ -24,13 +27,17 @@ class _ConfigScreenState extends State<ConfigScreen> {
     final cfg = context.read<AppProvider>().estado.config;
     _nomeCtrl.text = cfg.nome;
     _geminiCtrl.text = cfg.gemini;
+    _deepseekCtrl.text = cfg.deepseek;
     _modelo = cfg.modelo.isNotEmpty ? cfg.modelo : 'gemini-2.0-flash';
+    _deepseekModelo = cfg.deepseekModelo.isNotEmpty ? cfg.deepseekModelo : 'deepseek-chat';
+    _aiProvider = cfg.aiProvider.isNotEmpty ? cfg.aiProvider : 'gemini';
   }
 
   @override
   void dispose() {
     _nomeCtrl.dispose();
     _geminiCtrl.dispose();
+    _deepseekCtrl.dispose();
     super.dispose();
   }
 
@@ -41,6 +48,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
       nome: _nomeCtrl.text.trim(),
       gemini: _geminiCtrl.text.trim(),
       modelo: _modelo,
+      deepseek: _deepseekCtrl.text.trim(),
+      deepseekModelo: _deepseekModelo,
+      aiProvider: _aiProvider,
     ));
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) setState(() => _salvando = false);
@@ -102,25 +112,51 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
           const SizedBox(height: 20),
           _secao('Inteligência Artificial'),
+          const Text('Provedor ativo', style: TextStyle(color: textSecondary, fontSize: 13)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: _radioProvider('Gemini (gratuito)', 'gemini')),
+              const SizedBox(width: 8),
+              Expanded(child: _radioProvider('DeepSeek (pago)', 'deepseek')),
+            ],
+          ),
+          const SizedBox(height: 16),
           const Text(
-            'Chave da API Google Gemini (gratuita em aistudio.google.com)',
+            'Google Gemini — aistudio.google.com/apikey',
             style: TextStyle(color: textMuted, fontSize: 11),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           TextField(
             controller: _geminiCtrl,
             style: const TextStyle(color: textPrimary, fontSize: 13),
             decoration: const InputDecoration(
               labelText: 'Chave Gemini',
-              prefixIcon:
-                  Icon(Icons.key_outlined, size: 18, color: textMuted),
+              prefixIcon: Icon(Icons.key_outlined, size: 18, color: textMuted),
             ),
           ),
-          const SizedBox(height: 12),
-          const Text('Modelo',
-              style: TextStyle(color: textSecondary, fontSize: 13)),
+          const SizedBox(height: 8),
+          const Text('Modelo Gemini', style: TextStyle(color: textSecondary, fontSize: 13)),
           const SizedBox(height: 6),
           _dropModelo(),
+          const SizedBox(height: 16),
+          const Text(
+            'DeepSeek — platform.deepseek.com/api_keys',
+            style: TextStyle(color: textMuted, fontSize: 11),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _deepseekCtrl,
+            style: const TextStyle(color: textPrimary, fontSize: 13),
+            decoration: const InputDecoration(
+              labelText: 'Chave DeepSeek',
+              prefixIcon: Icon(Icons.key_outlined, size: 18, color: textMuted),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text('Modelo DeepSeek', style: TextStyle(color: textSecondary, fontSize: 13)),
+          const SizedBox(height: 6),
+          _dropDeepSeekModelo(),
 
           const SizedBox(height: 20),
           _secao('Sincronização'),
@@ -235,6 +271,35 @@ class _ConfigScreenState extends State<ConfigScreen> {
     );
   }
 
+  Widget _radioProvider(String label, String value) {
+    final sel = _aiProvider == value;
+    return GestureDetector(
+      onTap: () => setState(() => _aiProvider = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: sel ? orange.withValues(alpha: 0.12) : navyLight,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: sel ? orange : navyBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(sel ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                size: 16, color: sel ? orange : textMuted),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(label,
+                  style: TextStyle(
+                      color: sel ? orange : textPrimary,
+                      fontSize: 12,
+                      fontWeight: sel ? FontWeight.w600 : FontWeight.w400)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _dropModelo() {
     const modelos = [
       'gemini-2.0-flash',
@@ -256,9 +321,28 @@ class _ConfigScreenState extends State<ConfigScreen> {
         dropdownColor: navyLight,
         style: const TextStyle(color: textPrimary, fontSize: 13),
         onChanged: (v) => setState(() => _modelo = v ?? _modelo),
-        items: modelos
-            .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-            .toList(),
+        items: modelos.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+      ),
+    );
+  }
+
+  Widget _dropDeepSeekModelo() {
+    const modelos = ['deepseek-chat', 'deepseek-reasoner'];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: navyLight,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: navyBorder),
+      ),
+      child: DropdownButton<String>(
+        value: modelos.contains(_deepseekModelo) ? _deepseekModelo : modelos.first,
+        isExpanded: true,
+        underline: const SizedBox.shrink(),
+        dropdownColor: navyLight,
+        style: const TextStyle(color: textPrimary, fontSize: 13),
+        onChanged: (v) => setState(() => _deepseekModelo = v ?? _deepseekModelo),
+        items: modelos.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
       ),
     );
   }

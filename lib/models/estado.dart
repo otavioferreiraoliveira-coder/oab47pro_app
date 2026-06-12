@@ -67,6 +67,9 @@ class ConfigApp {
   final String nome;
   final String gemini;
   final String modelo;
+  final String deepseek;
+  final String deepseekModelo;
+  final String aiProvider;
   final String ttsVoz;
   final double ttsVel;
 
@@ -74,14 +77,26 @@ class ConfigApp {
     this.nome = '',
     this.gemini = '',
     this.modelo = 'gemini-2.0-flash',
+    this.deepseek = '',
+    this.deepseekModelo = 'deepseek-chat',
+    this.aiProvider = 'gemini',
     this.ttsVoz = '',
     this.ttsVel = 1.0,
   });
+
+  bool get temChave => gemini.isNotEmpty || deepseek.isNotEmpty;
+  String get provedorAtivo =>
+      (aiProvider == 'deepseek' && deepseek.isNotEmpty)
+          ? 'deepseek'
+          : (gemini.isNotEmpty ? 'gemini' : (deepseek.isNotEmpty ? 'deepseek' : 'gemini'));
 
   factory ConfigApp.fromJson(Map<String, dynamic> j) => ConfigApp(
         nome: j['nome'] as String? ?? '',
         gemini: j['gemini'] as String? ?? '',
         modelo: j['modelo'] as String? ?? 'gemini-2.0-flash',
+        deepseek: j['deepseek'] as String? ?? '',
+        deepseekModelo: j['deepseekModelo'] as String? ?? 'deepseek-chat',
+        aiProvider: j['aiProvider'] as String? ?? 'gemini',
         ttsVoz: j['ttsVoz'] as String? ?? '',
         ttsVel: (j['ttsVel'] as num?)?.toDouble() ?? 1.0,
       );
@@ -90,6 +105,9 @@ class ConfigApp {
         'nome': nome,
         'gemini': gemini,
         'modelo': modelo,
+        'deepseek': deepseek,
+        'deepseekModelo': deepseekModelo,
+        'aiProvider': aiProvider,
         'ttsVoz': ttsVoz,
         'ttsVel': ttsVel,
       };
@@ -98,6 +116,9 @@ class ConfigApp {
     String? nome,
     String? gemini,
     String? modelo,
+    String? deepseek,
+    String? deepseekModelo,
+    String? aiProvider,
     String? ttsVoz,
     double? ttsVel,
   }) =>
@@ -105,6 +126,9 @@ class ConfigApp {
         nome: nome ?? this.nome,
         gemini: gemini ?? this.gemini,
         modelo: modelo ?? this.modelo,
+        deepseek: deepseek ?? this.deepseek,
+        deepseekModelo: deepseekModelo ?? this.deepseekModelo,
+        aiProvider: aiProvider ?? this.aiProvider,
         ttsVoz: ttsVoz ?? this.ttsVoz,
         ttsVel: ttsVel ?? this.ttsVel,
       );
@@ -117,6 +141,7 @@ class EstadoApp {
   ConfigApp config;
   int configTs;
   Map<String, String> cacheIA;
+  List<Map<String, dynamic>> conversas;
 
   EstadoApp({
     Map<String, Resposta>? respostas,
@@ -125,11 +150,13 @@ class EstadoApp {
     ConfigApp? config,
     this.configTs = 0,
     Map<String, String>? cacheIA,
+    List<Map<String, dynamic>>? conversas,
   })  : respostas = respostas ?? {},
         simulados = simulados ?? [],
         plano = plano ?? {},
         config = config ?? const ConfigApp(),
-        cacheIA = cacheIA ?? {};
+        cacheIA = cacheIA ?? {},
+        conversas = conversas ?? [];
 
   factory EstadoApp.fromJson(Map<String, dynamic> j) {
     final resps = <String, Resposta>{};
@@ -148,6 +175,10 @@ class EstadoApp {
     for (final e in cMap.entries) {
       if (e.value is String) cache[e.key] = e.value;
     }
+    final convs = <Map<String, dynamic>>[];
+    for (final c in (j['conversas'] as List? ?? [])) {
+      if (c is Map) convs.add(Map<String, dynamic>.from(c));
+    }
     return EstadoApp(
       respostas: resps,
       simulados: sims,
@@ -157,6 +188,7 @@ class EstadoApp {
           : const ConfigApp(),
       configTs: (j['configTs'] as num?)?.toInt() ?? 0,
       cacheIA: cache,
+      conversas: convs,
     );
   }
 
@@ -167,6 +199,7 @@ class EstadoApp {
         'config': config.toJson(),
         'configTs': configTs,
         'cacheIA': cacheIA,
+        'conversas': conversas,
       };
 
   void mergeFrom(EstadoApp remote) {
@@ -183,6 +216,10 @@ class EstadoApp {
     if (remote.configTs > configTs) {
       config = remote.config;
       configTs = remote.configTs;
+    }
+    final convIds = conversas.map((c) => c['id'] as String?).toSet();
+    for (final c in remote.conversas) {
+      if (!convIds.contains(c['id'] as String?)) conversas.add(c);
     }
   }
 }
