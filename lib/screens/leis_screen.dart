@@ -133,28 +133,18 @@ NUNCA invente artigos. Máximo 400 palavras.''';
     setState(() => _carregandoDir[i] = true);
     final d = _bloco1[i];
     try {
-      final resp = await http.get(
-        Uri.parse(d.url),
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 16; SM-M556B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'pt-BR,pt;q=0.9',
-        },
-      ).timeout(const Duration(seconds: 25));
-      String html;
-      try {
-        html = utf8.decode(resp.bodyBytes);
-      } catch (_) {
-        html = latin1.decode(resp.bodyBytes);
+      // Usa a função serverless Vercel (mesma origem do app web) — sem CORS
+      final apiUrl = Uri.parse(
+        'https://oab47pro.vercel.app/api/planalto?url=${Uri.encodeComponent(d.url)}',
+      );
+      final resp = await http.get(apiUrl)
+          .timeout(const Duration(seconds: 30));
+      if (resp.statusCode != 200) {
+        throw Exception('HTTP ${resp.statusCode}');
       }
-      // strip HTML tags and collapse whitespace
-      String txt = html
-          .replaceAll(RegExp(r'<script[^>]*>[\s\S]*?</script>', caseSensitive: false), '')
-          .replaceAll(RegExp(r'<style[^>]*>[\s\S]*?</style>', caseSensitive: false), '')
-          .replaceAll(RegExp(r'<[^>]+>'), ' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
-      if (txt.length > 6000) txt = '${txt.substring(0, 6000)} [texto parcial]';
+      final json = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+      if (json['error'] != null) throw Exception(json['error']);
+      String txt = (json['txt'] as String? ?? '').trim();
       if (txt.length < 50) throw Exception('Conteúdo não encontrado');
       _cacheDir[i] = txt;
       setState(() { _carregandoDir.remove(i); _playing = key; });
