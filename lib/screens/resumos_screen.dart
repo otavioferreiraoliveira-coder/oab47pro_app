@@ -224,6 +224,15 @@ Máximo 250 palavras.''';
         ]),
         automaticallyImplyLeading: false,
         actions: [
+          if (_falando)
+            IconButton(
+              icon: const Icon(Icons.stop_circle_outlined, color: orange, size: 22),
+              tooltip: 'Parar leitura',
+              onPressed: () async {
+                await _tts.stop();
+                setState(() => _falando = false);
+              },
+            ),
           IconButton(icon: const Icon(Icons.refresh_outlined, size: 20), onPressed: _carregar),
         ],
       ),

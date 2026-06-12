@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
@@ -17,28 +18,53 @@ class _MentorScreenState extends State<MentorScreen> {
   final _scroll = ScrollController();
   bool _carregando = false;
   Map<String, dynamic>? _convAtual;
+  Timer? _syncTimer;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _inicializar());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final app = context.read<AppProvider>();
+      await app.sincronizar();
+      _inicializar();
+    });
+    // Polling a cada 12s enquanto a tela está aberta
+    _syncTimer = Timer.periodic(const Duration(seconds: 12), (_) async {
+      if (!mounted) return;
+      final app = context.read<AppProvider>();
+      await app.sincronizar();
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _syncTimer?.cancel();
     _ctrl.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
   void _inicializar() {
+    if (!mounted) return;
     final app = context.read<AppProvider>();
     final convs = app.estado.conversas;
     setState(() {
-      if (convs.isNotEmpty) {
-        _convAtual = Map<String, dynamic>.from(convs.first);
+      if (_convAtual == null) {
+        // Primeira abertura: carrega a conversa mais recente
+        _convAtual = convs.isNotEmpty
+            ? Map<String, dynamic>.from(convs.first)
+            : _novaConv();
       } else {
-        _convAtual = _novaConv();
+        // Após sync: atualiza a conversa atual se veio do remoto com msgs novas
+        final id = _convAtual!['id'] as String;
+        final remota = convs.cast<Map<String, dynamic>?>()
+            .firstWhere((c) => c?['id'] == id, orElse: () => null);
+        if (remota != null) {
+          final localMsgs = (_convAtual!['msgs'] as List?)?.length ?? 0;
+          final remotaMsgs = (remota['msgs'] as List?)?.length ?? 0;
+          if (remotaMsgs > localMsgs) _convAtual = Map<String, dynamic>.from(remota);
+        }
       }
     });
   }

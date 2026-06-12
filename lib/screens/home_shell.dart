@@ -11,6 +11,7 @@ import 'mentor_screen.dart';
 import 'config_screen.dart';
 import 'resumos_screen.dart';
 import 'biblioteca_screen.dart';
+import 'leis_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -121,6 +122,15 @@ class _MaisScreen extends StatelessWidget {
             sub: 'Top 5 por disciplina — baixe para ouvir offline',
             color: orange,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ResumosScreen())),
+          ),
+          const SizedBox(height: 10),
+          _item(
+            context,
+            icon: Icons.menu_book_outlined,
+            label: 'Leitura de Leis (Bloco 1)',
+            sub: 'Ouça os artigos do Planalto por tema via IA',
+            color: const Color(0xFF22C55E),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeisScreen())),
           ),
           const SizedBox(height: 10),
           _item(
