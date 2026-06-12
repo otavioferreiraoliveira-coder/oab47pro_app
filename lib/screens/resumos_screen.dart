@@ -1,11 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/theme.dart';
 import '../config/supabase_config.dart';
+import '../providers/app_provider.dart';
+import '../services/gemini_service.dart';
+import '../services/deepseek_service.dart';
 
 class ResumosScreen extends StatefulWidget {
   const ResumosScreen({super.key});
@@ -22,15 +27,32 @@ class _AudioItem {
 }
 
 class _ResumosScreenState extends State<ResumosScreen> {
+  final FlutterTts _tts = FlutterTts();
   List<_AudioItem> _audios = [];
   bool _carregando = true;
   String? _erro;
   final Map<String, double> _progresso = {};
+  bool _falando = false;
+
+  // Atualizações legislativas IA
+  bool _buscandoAtualizacoes = false;
+  String? _resultadoAtualizacoes;
+  String? _erroAtualizacoes;
 
   @override
   void initState() {
     super.initState();
+    _tts.setLanguage('pt-BR');
+    _tts.setSpeechRate(0.5);
+    _tts.setCompletionHandler(() { if (mounted) setState(() => _falando = false); });
+    _tts.setErrorHandler((e) { if (mounted) setState(() => _falando = false); });
     _carregar();
+  }
+
+  @override
+  void dispose() {
+    _tts.stop();
+    super.dispose();
   }
 
   Future<void> _carregar() async {
@@ -56,7 +78,7 @@ class _ResumosScreenState extends State<ResumosScreen> {
       body: '{"prefix":"","limit":200,"sortBy":{"column":"name","order":"asc"}}',
     );
     if (resp.statusCode != 200) {
-      throw Exception('Bucket "audios" não encontrado. Crie-o no Supabase Storage e faça upload dos MP3s.');
+      throw Exception('Bucket "audios" não encontrado.');
     }
     final list = jsonDecode(resp.body) as List<dynamic>;
     return list
@@ -72,9 +94,8 @@ class _ResumosScreenState extends State<ResumosScreen> {
         .toList();
   }
 
-  String _formatar(String nome) {
-    return nome.replaceAll('.mp3', '').replaceAll('_', ' ').replaceAll('-', ' ');
-  }
+  String _formatar(String nome) =>
+      nome.replaceAll('.mp3', '').replaceAll('_', ' ').replaceAll('-', ' ');
 
   Future<String?> _caminhoLocal(String arquivo) async {
     final dir = await getApplicationDocumentsDirectory();
@@ -131,9 +152,64 @@ class _ResumosScreenState extends State<ResumosScreen> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nenhum player de áudio encontrado no dispositivo')),
+          const SnackBar(content: Text('Nenhum player de áudio encontrado')),
         );
       }
+    }
+  }
+
+  Future<void> _falarTexto(String texto) async {
+    if (_falando) {
+      await _tts.stop();
+      setState(() => _falando = false);
+      return;
+    }
+    setState(() => _falando = true);
+    await _tts.speak(texto);
+  }
+
+  Future<void> _buscarAtualizacoes() async {
+    final app = context.read<AppProvider>();
+    final cfg = app.estado.config;
+    if (!cfg.temChave) {
+      setState(() => _erroAtualizacoes = 'Configure uma chave de IA em Configurações.');
+      return;
+    }
+    setState(() {
+      _buscandoAtualizacoes = true;
+      _resultadoAtualizacoes = null;
+      _erroAtualizacoes = null;
+    });
+    final prompt = '''Disciplina: Resumos de Áudio — OAB 1ª Fase
+Data de hoje: junho de 2026.
+
+Liste as principais atualizações legislativas e jurisprudenciais de 2025-2026 relevantes para a OAB 1ª Fase. Inclua:
+• Emendas Constitucionais, Leis Complementares ou Leis Ordinárias novas
+• Súmulas vinculantes do STF ou STJ de 2024-2026
+• Alterações em pontos clássicos cobrados pela FGV
+
+Para cada item: "[Nº e nome da norma] — o que mudou e como impacta o candidato."
+Máximo 250 palavras.''';
+    try {
+      String resultado;
+      if (cfg.provedorAtivo == 'deepseek') {
+        resultado = await DeepSeekService.generate(
+          apiKey: cfg.deepseek,
+          model: cfg.deepseekModelo,
+          prompt: prompt,
+          maxTokens: 1000,
+        );
+      } else {
+        resultado = await GeminiService.generateWithSystem(
+          apiKey: cfg.gemini,
+          model: cfg.modelo,
+          prompt: prompt,
+          maxTokens: 1000,
+        );
+      }
+      setState(() { _resultadoAtualizacoes = resultado; _buscandoAtualizacoes = false; });
+    } catch (e) {
+      setState(() { _erroAtualizacoes = e.toString(); _buscandoAtualizacoes = false; });
     }
   }
 
@@ -155,85 +231,116 @@ class _ResumosScreenState extends State<ResumosScreen> {
           ? const Center(child: CircularProgressIndicator(color: orange))
           : _erro != null
               ? _buildErro()
-              : _audios.isEmpty
-                  ? _buildVazio()
-                  : _buildLista(),
+              : _buildConteudo(),
     );
   }
 
-  Widget _buildErro() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.cloud_off_outlined, color: textMuted, size: 48),
-          const SizedBox(height: 16),
-          const Text('Não foi possível carregar os áudios',
-              style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center),
-          const SizedBox(height: 8),
-          Text(_erro ?? '', style: const TextStyle(color: textMuted, fontSize: 12), textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          const Text(
-            'Para disponibilizar os áudios:\n'
-            '1. Crie o bucket "audios" no Supabase Storage\n'
-            '2. Faça upload dos arquivos MP3',
-            style: TextStyle(color: textSecondary, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(onPressed: _carregar, child: const Text('Tentar novamente')),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildVazio() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.music_off_outlined, color: textMuted, size: 48),
-          SizedBox(height: 16),
-          Text('Nenhum áudio disponível',
-              style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
-          SizedBox(height: 8),
-          Text(
-            'Faça upload de arquivos MP3 para o\nbucket "audios" no Supabase Storage.',
-            style: TextStyle(color: textSecondary, fontSize: 12),
-            textAlign: TextAlign.center,
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildLista() {
-    return Column(
+  Widget _buildConteudo() {
+    return ListView(
+      padding: const EdgeInsets.all(12),
       children: [
+        // Card de atualizações legislativas 2026
+        _buildCardAtualizacoes(),
+        const SizedBox(height: 12),
+        // Info TTS
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: navy,
-          child: const Row(children: [
-            Icon(Icons.info_outline, color: textMuted, size: 14),
-            SizedBox(width: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: navyLight,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: navyBorder),
+          ),
+          child: Row(children: [
+            const Icon(Icons.info_outline, color: textMuted, size: 14),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Baixe para ouvir offline com tela bloqueada. "Ouvir" abre no player do celular.',
-                style: TextStyle(color: textMuted, fontSize: 11),
+                _audios.isEmpty
+                    ? 'Faça upload de MP3s no bucket "audios" do Supabase para ouvir aqui.'
+                    : 'Baixe para ouvir offline com tela bloqueada. "Ouvir" abre no player do celular.',
+                style: const TextStyle(color: textMuted, fontSize: 11),
               ),
             ),
           ]),
         ),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: _audios.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _buildItem(_audios[i]),
-          ),
-        ),
+        if (_audios.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ..._audios.asMap().entries.map((e) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _buildItem(e.value),
+          )),
+        ],
       ],
+    );
+  }
+
+  Widget _buildCardAtualizacoes() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1200).withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF5C3D00).withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(children: [
+            Text('⚠', style: TextStyle(fontSize: 15)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text('Atualizações legislativas 2026 (IA)',
+                  style: TextStyle(color: Color(0xFFFCD34D), fontSize: 13, fontWeight: FontWeight.w600)),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _buscandoAtualizacoes ? null : _buscarAtualizacoes,
+                icon: _buscandoAtualizacoes
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 1.5, color: orange))
+                    : const Icon(Icons.search, size: 16, color: orange),
+                label: Text(
+                  _buscandoAtualizacoes ? 'Consultando IA…' : 'Pesquisar atualizações 2026',
+                  style: const TextStyle(color: orange, fontSize: 13),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: navyBorder),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+            if (_resultadoAtualizacoes != null) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                icon: Icon(_falando ? Icons.stop : Icons.volume_up, size: 18, color: orange),
+                tooltip: _falando ? 'Parar leitura' : 'Ouvir resultado',
+                onPressed: () => _falarTexto(_resultadoAtualizacoes!),
+              ),
+            ],
+          ]),
+          if (_resultadoAtualizacoes != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: navyLight,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: navyBorder),
+              ),
+              child: Text(_resultadoAtualizacoes!,
+                  style: const TextStyle(color: textPrimary, fontSize: 12, height: 1.6)),
+            ),
+          ],
+          if (_erroAtualizacoes != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(_erroAtualizacoes!, style: const TextStyle(color: red, fontSize: 12)),
+            ),
+        ],
+      ),
     );
   }
 
@@ -257,7 +364,7 @@ class _ResumosScreenState extends State<ResumosScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.music_note, color: orange, size: 20),
+                  const Icon(Icons.music_note, color: orange, size: 18),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -283,7 +390,7 @@ class _ResumosScreenState extends State<ResumosScreen> {
                   GestureDetector(
                     onTap: () => _tocar(item),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                       decoration: BoxDecoration(
                         color: orange,
                         borderRadius: BorderRadius.circular(6),
@@ -291,7 +398,7 @@ class _ResumosScreenState extends State<ResumosScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.play_arrow, color: Colors.white, size: 16),
+                          const Icon(Icons.play_arrow, color: Colors.white, size: 15),
                           const SizedBox(width: 4),
                           Text(baixado ? 'Ouvir (offline)' : 'Ouvir',
                               style: const TextStyle(color: Colors.white, fontSize: 12)),
@@ -320,6 +427,25 @@ class _ResumosScreenState extends State<ResumosScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildErro() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.cloud_off_outlined, color: textMuted, size: 48),
+          const SizedBox(height: 16),
+          const Text('Não foi possível carregar os áudios',
+              style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          Text(_erro ?? '', style: const TextStyle(color: textMuted, fontSize: 12), textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: _carregar, child: const Text('Tentar novamente')),
+        ]),
+      ),
     );
   }
 }

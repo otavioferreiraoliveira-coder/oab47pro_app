@@ -4,6 +4,7 @@ import '../config/theme.dart';
 import '../models/questao.dart';
 import '../providers/app_provider.dart';
 import '../services/gemini_service.dart';
+import '../services/deepseek_service.dart';
 
 class PraticarScreen extends StatefulWidget {
   const PraticarScreen({super.key});
@@ -86,20 +87,32 @@ class _PraticarScreenState extends State<PraticarScreen> {
       setState(() => _explicacao = app.estado.cacheIA[cacheKey]);
       return;
     }
-    final apiKey = app.estado.config.gemini;
-    final model = app.estado.config.modelo;
-    if (apiKey.isEmpty) {
+    final cfg = app.estado.config;
+    if (!cfg.temChave) {
       setState(() => _explicacao =
-          'Configure sua chave Gemini em Configurações para usar esta função.');
+          'Configure uma chave de IA (Gemini ou DeepSeek) em Configurações.');
       return;
     }
     setState(() => _carregandoIA = true);
+    final opcTxt = q.opcoes.entries.map((e) => '${e.key}) ${e.value}').join('\n');
+    final prompt =
+        'Explique de forma didática (máx 200 palavras) por que a alternativa ${q.gabarito} é o gabarito correto:\n\n${q.enunciado}\n\n$opcTxt\n\nGabarito: ${q.gabarito}';
     try {
-      final opcTxt = q.opcoes.entries.map((e) => '${e.key}) ${e.value}').join('\n');
-      final prompt =
-          'Explique de forma didática e objetiva (máx 200 palavras) por que a alternativa ${q.gabarito} é o gabarito correto da seguinte questão do Exame OAB:\n\n${q.enunciado}\n\n$opcTxt\n\nGabarito: ${q.gabarito}';
-      final resp = await GeminiService.generate(
-          apiKey: apiKey, model: model, prompt: prompt);
+      String resp;
+      if (cfg.provedorAtivo == 'deepseek') {
+        resp = await DeepSeekService.generate(
+          apiKey: cfg.deepseek,
+          model: cfg.deepseekModelo,
+          prompt: prompt,
+          maxTokens: 800,
+        );
+      } else {
+        resp = await GeminiService.generate(
+          apiKey: cfg.gemini,
+          model: cfg.modelo,
+          prompt: prompt,
+        );
+      }
       app.estado.cacheIA[cacheKey] = resp;
       app.sincronizar();
       setState(() => _explicacao = resp);
@@ -379,7 +392,7 @@ class _PraticarScreenState extends State<PraticarScreen> {
         border = red.withValues(alpha: 0.5);
         textColor = red;
       } else {
-        textColor = textMuted;
+        textColor = textSecondary; // era textMuted — muito escuro no dark
       }
     } else if (_resposta == letra) {
       bg = orange.withValues(alpha: 0.1);
