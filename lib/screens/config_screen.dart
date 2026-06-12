@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/app_provider.dart';
 import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 import '../widgets/sync_badge.dart';
 
 class ConfigScreen extends StatefulWidget {
@@ -16,6 +18,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
   final _nomeCtrl = TextEditingController();
   final _geminiCtrl = TextEditingController();
   final _deepseekCtrl = TextEditingController();
+  final _syncCodeCtrl = TextEditingController();
   String _modelo = 'gemini-2.0-flash';
   String _deepseekModelo = 'deepseek-chat';
   String _aiProvider = 'gemini';
@@ -31,6 +34,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
     _modelo = cfg.modelo.isNotEmpty ? cfg.modelo : 'gemini-2.0-flash';
     _deepseekModelo = cfg.deepseekModelo.isNotEmpty ? cfg.deepseekModelo : 'deepseek-chat';
     _aiProvider = cfg.aiProvider.isNotEmpty ? cfg.aiProvider : 'gemini';
+    SyncService.getUid().then((uid) {
+      if (mounted) setState(() => _syncCodeCtrl.text = uid);
+    });
   }
 
   @override
@@ -38,6 +44,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
     _nomeCtrl.dispose();
     _geminiCtrl.dispose();
     _deepseekCtrl.dispose();
+    _syncCodeCtrl.dispose();
     super.dispose();
   }
 
@@ -160,16 +167,72 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
           const SizedBox(height: 20),
           _secao('Sincronização'),
+          // Código de sync Web ↔ App
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: navyLight,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: navyBorder),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('📱 Código de Sincronização (Web ↔ App)',
+                  style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              const Text(
+                'Para sincronizar o Mentor IA entre site e app, use o mesmo código nos dois lados.',
+                style: TextStyle(color: textMuted, fontSize: 11),
+              ),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: _syncCodeCtrl,
+                    style: const TextStyle(color: textPrimary, fontSize: 12),
+                    decoration: const InputDecoration(
+                      labelText: 'Código de sync',
+                      prefixIcon: Icon(Icons.link, size: 16, color: textMuted),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.copy, color: textMuted, size: 18),
+                  tooltip: 'Copiar',
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _syncCodeCtrl.text));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Código copiado!')),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.save_outlined, color: orange, size: 18),
+                  tooltip: 'Salvar código',
+                  onPressed: () async {
+                    final v = _syncCodeCtrl.text.trim();
+                    if (v.isEmpty) return;
+                    await SyncService.setUid(v);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Código salvo! Sincronize agora.')),
+                      );
+                    }
+                  },
+                ),
+              ]),
+            ]),
+          ),
           _tile(
-            leading:
-                const Icon(Icons.sync, color: textSecondary),
+            leading: const Icon(Icons.sync, color: textSecondary),
             title: 'Sincronizar agora',
             sub: 'Envia dados ao Supabase',
             onTap: () => app.sincronizar(),
           ),
           _tile(
-            leading:
-                const Icon(Icons.storage_outlined, color: textSecondary),
+            leading: const Icon(Icons.storage_outlined, color: textSecondary),
             title: 'Status',
             sub: app.syncOk
                 ? 'Último sync: OK'
