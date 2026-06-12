@@ -43,8 +43,15 @@ class _LeisScreenState extends State<LeisScreen> {
   @override
   void initState() {
     super.initState();
-    _tts.setLanguage('pt-BR');
-    _tts.setSpeechRate(0.5);
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _tts.setLanguage('pt-BR');
+    await _tts.setSpeechRate(0.5);
+    await _tts.setVolume(1.0);
+    await _tts.setPitch(1.0);
+    await _tts.awaitSpeakCompletion(true);
     _tts.setCompletionHandler(() { if (mounted) setState(() => _playing = null); });
     _tts.setErrorHandler((_) { if (mounted) setState(() => _playing = null); });
   }
