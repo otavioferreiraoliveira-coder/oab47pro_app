@@ -5,6 +5,7 @@ import '../config/theme.dart';
 import '../providers/app_provider.dart';
 import '../services/gemini_service.dart';
 import '../services/deepseek_service.dart';
+import '../services/sync_service.dart';
 
 class MentorScreen extends StatefulWidget {
   const MentorScreen({super.key});
