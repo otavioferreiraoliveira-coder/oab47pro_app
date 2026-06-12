@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/app_provider.dart';
@@ -29,17 +31,22 @@ class LeisScreen extends StatefulWidget {
 
 class _LeisScreenState extends State<LeisScreen> {
   final FlutterTts _tts = FlutterTts();
-  final Map<int, String> _cache = {};
-  final Map<int, bool> _carregando = {};
-  int? _ouvintoIdx;
+  // IA cache/state
+  final Map<int, String> _cacheIA = {};
+  final Map<int, bool> _carregandoIA = {};
+  // Planalto cache/state
+  final Map<int, String> _cacheDir = {};
+  final Map<int, bool> _carregandoDir = {};
+  // null = parado; 'ia:i' ou 'dir:i'
+  String? _playing;
 
   @override
   void initState() {
     super.initState();
     _tts.setLanguage('pt-BR');
     _tts.setSpeechRate(0.5);
-    _tts.setCompletionHandler(() { if (mounted) setState(() => _ouvintoIdx = null); });
-    _tts.setErrorHandler((_) { if (mounted) setState(() => _ouvintoIdx = null); });
+    _tts.setCompletionHandler(() { if (mounted) setState(() => _playing = null); });
+    _tts.setErrorHandler((_) { if (mounted) setState(() => _playing = null); });
   }
 
   @override
@@ -48,17 +55,18 @@ class _LeisScreenState extends State<LeisScreen> {
     super.dispose();
   }
 
-  Future<void> _ouvir(int i) async {
-    if (_ouvintoIdx == i) {
+  Future<void> _ouvirIA(int i) async {
+    final key = 'ia:$i';
+    if (_playing == key) {
       await _tts.stop();
-      setState(() => _ouvintoIdx = null);
+      setState(() => _playing = null);
       return;
     }
-    if (_ouvintoIdx != null) await _tts.stop();
+    if (_playing != null) await _tts.stop();
 
-    if (_cache.containsKey(i)) {
-      setState(() => _ouvintoIdx = i);
-      await _tts.speak(_cache[i]!);
+    if (_cacheIA.containsKey(i)) {
+      setState(() => _playing = key);
+      await _tts.speak(_cacheIA[i]!);
       return;
     }
 
@@ -71,7 +79,7 @@ class _LeisScreenState extends State<LeisScreen> {
       return;
     }
 
-    setState(() => _carregando[i] = true);
+    setState(() => _carregandoIA[i] = true);
     final d = _bloco1[i];
     final prompt = '''Você é professor de Direito para o Exame OAB 1ª Fase.
 Disciplina: ${d.nome}
@@ -94,14 +102,62 @@ NUNCA invente artigos. Máximo 400 palavras.''';
           prompt: prompt, maxTokens: 900,
         );
       }
-      _cache[i] = txt;
-      setState(() { _carregando.remove(i); _ouvintoIdx = i; });
+      _cacheIA[i] = txt;
+      setState(() { _carregandoIA.remove(i); _playing = key; });
       await _tts.speak(txt);
     } catch (e) {
       if (mounted) {
-        setState(() => _carregando.remove(i));
+        setState(() => _carregandoIA.remove(i));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro IA: $e'), backgroundColor: red),
+        );
+      }
+    }
+  }
+
+  Future<void> _ouvirPlanalto(int i) async {
+    final key = 'dir:$i';
+    if (_playing == key) {
+      await _tts.stop();
+      setState(() => _playing = null);
+      return;
+    }
+    if (_playing != null) await _tts.stop();
+
+    if (_cacheDir.containsKey(i)) {
+      setState(() => _playing = key);
+      await _tts.speak(_cacheDir[i]!);
+      return;
+    }
+
+    setState(() => _carregandoDir[i] = true);
+    final d = _bloco1[i];
+    try {
+      final resp = await http.get(Uri.parse(d.url))
+          .timeout(const Duration(seconds: 20));
+      String html;
+      try {
+        html = utf8.decode(resp.bodyBytes);
+      } catch (_) {
+        html = latin1.decode(resp.bodyBytes);
+      }
+      // strip HTML tags and collapse whitespace
+      String txt = html
+          .replaceAll(RegExp(r'<script[^>]*>[\s\S]*?</script>', caseSensitive: false), '')
+          .replaceAll(RegExp(r'<style[^>]*>[\s\S]*?</style>', caseSensitive: false), '')
+          .replaceAll(RegExp(r'<[^>]+>'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      if (txt.length > 6000) txt = '${txt.substring(0, 6000)} [texto parcial]';
+      if (txt.length < 50) throw Exception('Conteúdo não encontrado');
+      _cacheDir[i] = txt;
+      setState(() { _carregandoDir.remove(i); _playing = key; });
+      await _tts.speak(txt);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _carregandoDir.remove(i));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro Planalto: $e'), backgroundColor: red),
         );
       }
     }
@@ -118,11 +174,11 @@ NUNCA invente artigos. Máximo 400 palavras.''';
         ]),
         automaticallyImplyLeading: false,
         actions: [
-          if (_ouvintoIdx != null)
+          if (_playing != null)
             IconButton(
               icon: const Icon(Icons.stop_circle_outlined, color: orange, size: 22),
               tooltip: 'Parar leitura',
-              onPressed: () async { await _tts.stop(); setState(() => _ouvintoIdx = null); },
+              onPressed: () async { await _tts.stop(); setState(() => _playing = null); },
             ),
         ],
       ),
@@ -131,55 +187,89 @@ NUNCA invente artigos. Máximo 400 palavras.''';
         itemCount: _bloco1.length,
         itemBuilder: (_, i) {
           final d = _bloco1[i];
-          final carregando = _carregando[i] == true;
-          final ouvindo = _ouvintoIdx == i;
-          final temCache = _cache.containsKey(i);
+          final keyIA = 'ia:$i';
+          final keyDir = 'dir:$i';
+          final loadIA = _carregandoIA[i] == true;
+          final loadDir = _carregandoDir[i] == true;
+          final playIA = _playing == keyIA;
+          final playDir = _playing == keyDir;
           return Container(
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: navyLight,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: ouvindo ? orange : navyBorder),
+              border: Border.all(color: (playIA || playDir) ? orange : navyBorder),
             ),
-            child: Row(children: [
-              Container(
-                width: 36, height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: orange.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text('${i + 1}',
-                  style: const TextStyle(color: orange, fontSize: 14, fontWeight: FontWeight.w800)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(d.nome,
-                  style: const TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                height: 34,
-                child: OutlinedButton.icon(
-                  onPressed: carregando ? null : () => _ouvir(i),
-                  icon: carregando
-                      ? const SizedBox(width: 14, height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 1.5, color: orange))
-                      : Icon(ouvindo ? Icons.stop : Icons.volume_up,
-                          size: 15, color: ouvindo ? red : orange),
-                  label: Text(
-                    carregando ? 'IA…' : (ouvindo ? 'Parar' : (temCache ? '▶ Reouvir' : '🔊 Ouvir')),
-                    style: TextStyle(
-                      color: ouvindo ? red : orange, fontSize: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Container(
+                    width: 36, height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: orange.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('${i + 1}',
+                      style: const TextStyle(color: orange, fontSize: 14, fontWeight: FontWeight.w800)),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: ouvindo ? red : navyBorder),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(d.nome,
+                      style: const TextStyle(color: textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
+                ]),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    // Botão IA
+                    SizedBox(
+                      height: 34,
+                      child: OutlinedButton.icon(
+                        onPressed: (loadIA || loadDir) ? null : () => _ouvirIA(i),
+                        icon: loadIA
+                            ? const SizedBox(width: 13, height: 13,
+                                child: CircularProgressIndicator(strokeWidth: 1.5, color: orange))
+                            : Icon(playIA ? Icons.stop : Icons.smart_toy_outlined,
+                                size: 14, color: playIA ? red : orange),
+                        label: Text(
+                          loadIA ? 'Carregando…' : (playIA ? 'Parar IA' : '🤖 Ouvir (IA)'),
+                          style: TextStyle(color: playIA ? red : orange, fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: playIA ? red : navyBorder),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                      ),
+                    ),
+                    // Botão Planalto
+                    SizedBox(
+                      height: 34,
+                      child: OutlinedButton.icon(
+                        onPressed: (loadIA || loadDir) ? null : () => _ouvirPlanalto(i),
+                        icon: loadDir
+                            ? const SizedBox(width: 13, height: 13,
+                                child: CircularProgressIndicator(strokeWidth: 1.5, color: orange))
+                            : Icon(playDir ? Icons.stop : Icons.menu_book_outlined,
+                                size: 14, color: playDir ? red : orange),
+                        label: Text(
+                          loadDir ? 'Carregando…' : (playDir ? 'Parar' : '📖 Ouvir Planalto'),
+                          style: TextStyle(color: playDir ? red : orange, fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: playDir ? red : navyBorder),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ]),
+              ],
+            ),
           );
         },
       ),
