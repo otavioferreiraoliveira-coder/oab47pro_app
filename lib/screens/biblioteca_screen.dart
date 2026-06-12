@@ -390,7 +390,7 @@ class _PdfViewerScreenState extends State<_PdfViewerScreen> {
             swipeHorizontal: false,
             autoSpacing: true,
             pageFling: true,
-            backgroundColor: '#0B1626',
+            nightMode: true,
             onRender: (pages) => setState(() { _paginas = pages ?? 0; _carregando = false; }),
             onPageChanged: (page, _) => setState(() => _paginaAtual = page ?? 0),
             onError: (e) {

@@ -217,9 +217,21 @@ class EstadoApp {
       config = remote.config;
       configTs = remote.configTs;
     }
-    final convIds = conversas.map((c) => c['id'] as String?).toSet();
+    final convMap = <String?, Map<String, dynamic>>{
+      for (final c in conversas) c['id'] as String?: c
+    };
     for (final c in remote.conversas) {
-      if (!convIds.contains(c['id'] as String?)) conversas.add(c);
+      final id = c['id'] as String?;
+      final localTs = (convMap[id]?['ts'] as num?)?.toInt() ?? 0;
+      final remoteTs = (c['ts'] as num?)?.toInt() ?? 0;
+      if (!convMap.containsKey(id)) {
+        convMap[id] = c;
+      } else if (remoteTs > localTs) {
+        convMap[id] = c;
+      }
     }
+    conversas = convMap.values.toList()
+      ..sort((a, b) => ((b['ts'] as num?)?.toInt() ?? 0)
+          .compareTo((a['ts'] as num?)?.toInt() ?? 0));
   }
 }
