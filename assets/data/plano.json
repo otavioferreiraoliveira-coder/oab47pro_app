@@ -1,0 +1,147 @@
+[
+  {
+    "id": "s1", "titulo": "Semana 1 — Diagnóstico e arranque", "periodo": "11/06 a 14/06",
+    "meta": "Definir sua linha de base real. Sem vaidade: o número de hoje é só o ponto de partida.",
+    "tarefas": [
+      { "id": "s1t1", "tag": "SETUP", "txt": "Configurar chave Gemini gratuita e testar a IA (Configurações)" },
+      { "id": "s1t2", "tag": "SIMULADO", "txt": "Simulado diagnóstico: refazer a prova real do 44º Exame (5h, sem consulta)" },
+      { "id": "s1t3", "tag": "ANÁLISE", "txt": "Analisar resultado por disciplina e anotar as 3 piores" },
+      { "id": "s1t4", "tag": "ÉTICA", "txt": "Ética: 30 questões (Top 1-2: Direitos/Prerrogativas e Infrações/Sanções)" },
+      { "id": "s1t5", "tag": "ÁUDIO", "txt": "Ouvir resumos de Ética no trajeto (2 dias)" }
+    ]
+  },
+  {
+    "id": "s2", "titulo": "Semana 2 — Ética a fundo + Direito Civil I", "periodo": "15/06 a 21/06",
+    "meta": "Ética são 8 questões: é a disciplina com melhor custo-benefício da prova. Meta: 80%+ de acerto.",
+    "tarefas": [
+      { "id": "s2t1", "tag": "ÉTICA", "txt": "Estudar PDFs Ceisc de Ética (aulas 1-5) + Top 5 completo nos resumos" },
+      { "id": "s2t2", "tag": "ÉTICA", "txt": "Resolver TODAS as questões de Ética do banco (80) com fundamentação" },
+      { "id": "s2t3", "tag": "CIVIL", "txt": "Civil: Família e Sucessões (PDFs + 30 questões)" },
+      { "id": "s2t4", "tag": "QUESTÕES", "txt": "40 questões/dia no total (mín. 5 dias)" },
+      { "id": "s2t5", "tag": "SIMULADO", "txt": "Sábado: Simulado FGV 80 questões + revisão dos erros no domingo" },
+      { "id": "s2t6", "tag": "ÁUDIO", "txt": "Áudios de Civil (Família, Contratos) no trânsito" }
+    ]
+  },
+  {
+    "id": "s3", "titulo": "Semana 3 — Constitucional + Processo Civil I", "periodo": "22/06 a 28/06",
+    "meta": "Controle de constitucionalidade e remédios constitucionais caem TODO ano. Domine-os.",
+    "tarefas": [
+      { "id": "s3t1", "tag": "CONST", "txt": "Constitucional: Controle de Constitucionalidade + Remédios (PDFs + resumos)" },
+      { "id": "s3t2", "tag": "CONST", "txt": "60 questões de Constitucional (filtro: que errei + não respondidas)" },
+      { "id": "s3t3", "tag": "PROC CIVIL", "txt": "CPC: Sistema Recursal (Top 1) — PDFs + 30 questões" },
+      { "id": "s3t4", "tag": "QUESTÕES", "txt": "40 questões/dia" },
+      { "id": "s3t5", "tag": "SIMULADO", "txt": "Sábado: Simulado FGV 80q + revisão de erros" }
+    ]
+  },
+  {
+    "id": "s4", "titulo": "Semana 4 — Penal + Processo Penal", "periodo": "29/06 a 05/07",
+    "meta": "Teoria do crime + prisões/cautelares: o núcleo de 12 questões da prova.",
+    "tarefas": [
+      { "id": "s4t1", "tag": "PENAL", "txt": "Penal: Teoria do Crime + Crimes contra Patrimônio/Pessoa (PDFs + 50 questões)" },
+      { "id": "s4t2", "tag": "PENAL", "txt": "Atualizações 2024: feminicídio autônomo (121-A), bullying, saidinha" },
+      { "id": "s4t3", "tag": "PROC PENAL", "txt": "CPP: Prisões e Medidas Cautelares + Recursos (PDFs + 40 questões)" },
+      { "id": "s4t4", "tag": "QUESTÕES", "txt": "40 questões/dia" },
+      { "id": "s4t5", "tag": "SIMULADO", "txt": "Sábado: Simulado FGV 80q + revisão de erros" }
+    ]
+  },
+  {
+    "id": "s5", "titulo": "Semana 5 — Administrativo + Civil II", "periodo": "06/07 a 12/07",
+    "meta": "Administrativo é 100% Lei 14.133 agora. Esqueça a 8.666.",
+    "tarefas": [
+      { "id": "s5t1", "tag": "ADMIN", "txt": "Administrativo: Licitações (14.133) + Atos + Responsabilidade do Estado" },
+      { "id": "s5t2", "tag": "ADMIN", "txt": "50 questões de Administrativo" },
+      { "id": "s5t3", "tag": "CIVIL", "txt": "Civil: Contratos + Reais + juros novos (Lei 14.905/2024) — 40 questões" },
+      { "id": "s5t4", "tag": "QUESTÕES", "txt": "40 questões/dia" },
+      { "id": "s5t5", "tag": "SIMULADO", "txt": "Sábado: Simulado FGV 80q + revisão de erros" }
+    ]
+  },
+  {
+    "id": "s6", "titulo": "Semana 6 — Trabalho + Processo do Trabalho", "periodo": "13/07 a 19/07",
+    "meta": "Bloco 2 entra em cena: Trabalho rende ~7 questões e tem padrão repetitivo de cobrança.",
+    "tarefas": [
+      { "id": "s6t1", "tag": "TRABALHO", "txt": "CLT: Contrato + Jornada + Rescisão (PDFs + 50 questões)" },
+      { "id": "s6t2", "tag": "TRABALHO", "txt": "Igualdade salarial (Lei 14.611/2023) e estabilidades" },
+      { "id": "s6t3", "tag": "PROC TRAB", "txt": "Processo do Trabalho: Recursos + Procedimentos (30 questões)" },
+      { "id": "s6t4", "tag": "REVISÃO", "txt": "Refazer questões erradas de Ética (filtro 'que errei')" },
+      { "id": "s6t5", "tag": "SIMULADO", "txt": "Sábado: Simulado FGV 80q + revisão de erros" }
+    ]
+  },
+  {
+    "id": "s7", "titulo": "Semana 7 — Tributário + Empresarial", "periodo": "20/07 a 26/07",
+    "meta": "Princípios + crédito tributário + sociedades + títulos: o miolo do Bloco 2.",
+    "tarefas": [
+      { "id": "s7t1", "tag": "TRIBUT", "txt": "Tributário: Princípios, Imunidades e Crédito (PDFs + 40 questões)" },
+      { "id": "s7t2", "tag": "TRIBUT", "txt": "Entender o essencial da Reforma (EC 132: IBS/CBS — transição 2026)" },
+      { "id": "s7t3", "tag": "EMPRES", "txt": "Empresarial: Societário (novos quóruns!) + Títulos + Falência (40 questões)" },
+      { "id": "s7t4", "tag": "QUESTÕES", "txt": "40 questões/dia" },
+      { "id": "s7t5", "tag": "SIMULADO", "txt": "Sábado: Simulado FGV 80q + revisão de erros" }
+    ]
+  },
+  {
+    "id": "s8", "titulo": "Semana 8 — Bloco 3 (parte 1)", "periodo": "27/07 a 02/08",
+    "meta": "Bloco 3: 18 questões fáceis de garantir com pouco esforço. DH, ECA, CDC e Ambiental = 8 questões.",
+    "tarefas": [
+      { "id": "s8t1", "tag": "DH", "txt": "Direitos Humanos: Pacto San José + Sistema Interamericano (resumos + questões)" },
+      { "id": "s8t2", "tag": "ECA", "txt": "ECA: medidas socioeducativas + família substituta (questões todas)" },
+      { "id": "s8t3", "tag": "CDC", "txt": "Consumidor: fato × vício + práticas abusivas (questões todas)" },
+      { "id": "s8t4", "tag": "AMBIENTAL", "txt": "Ambiental: responsabilidade + licenciamento (questões todas)" },
+      { "id": "s8t5", "tag": "REVISÃO", "txt": "Bloco 1: refazer erradas da semana (filtro 'que errei')" },
+      { "id": "s8t6", "tag": "SIMULADO", "txt": "Sábado: Simulado FGV 80q + revisão de erros" }
+    ]
+  },
+  {
+    "id": "s9", "titulo": "Semana 9 — Bloco 3 (parte 2)", "periodo": "03/08 a 09/08",
+    "meta": "Filosofia, Internacional, Financeiro, Eleitoral e Previdenciário: 10 questões que separam aprovados.",
+    "tarefas": [
+      { "id": "s9t1", "tag": "FILO", "txt": "Filosofia: positivismo × jusnaturalismo × pós-positivismo (resumos + questões)" },
+      { "id": "s9t2", "tag": "INTERN", "txt": "Internacional: LINDB + Migração + nacionalidade (EC 131!) — questões todas" },
+      { "id": "s9t3", "tag": "FINAN", "txt": "Financeiro: LRF + leis orçamentárias + precatórios — questões todas" },
+      { "id": "s9t4", "tag": "ELEIT", "txt": "Eleitoral: inelegibilidades + ações — questões todas" },
+      { "id": "s9t5", "tag": "PREVID", "txt": "Previdenciário: benefícios + segurados (pontos 2026!) — questões todas" },
+      { "id": "s9t6", "tag": "SIMULADO", "txt": "Sábado: Simulado FGV 80q + revisão de erros" }
+    ]
+  },
+  {
+    "id": "s10", "titulo": "Semana 10 — Revisão dirigida por dados", "periodo": "10/08 a 16/08",
+    "meta": "Agora o dashboard manda: ataque as 5 disciplinas do topo do Mapa de Prioridades.",
+    "tarefas": [
+      { "id": "s10t1", "tag": "DADOS", "txt": "Abrir Estatísticas e listar as 5 piores disciplinas" },
+      { "id": "s10t2", "tag": "REVISÃO", "txt": "50 questões/dia SÓ das disciplinas prioritárias" },
+      { "id": "s10t3", "tag": "REVISÃO", "txt": "Refazer TODAS as questões erradas acumuladas" },
+      { "id": "s10t4", "tag": "SIMULADO", "txt": "Sábado: prova real 45º Exame completa (5h, condições reais)" },
+      { "id": "s10t5", "tag": "ÁUDIO", "txt": "Áudios das piores disciplinas em todos os trajetos" }
+    ]
+  },
+  {
+    "id": "s11", "titulo": "Semana 11 — Reta final técnica", "periodo": "17/08 a 23/08",
+    "meta": "Última semana pesada. Depois disso, só manutenção.",
+    "tarefas": [
+      { "id": "s11t1", "tag": "REVISÃO", "txt": "Reler resumos Top 5 de TODAS as disciplinas (2 blocos/dia)" },
+      { "id": "s11t2", "tag": "QUESTÕES", "txt": "50 questões/dia (mix geral, modo aleatório)" },
+      { "id": "s11t3", "tag": "SIMULADO", "txt": "Sábado: prova real 46º Exame completa (a mais recente!)" },
+      { "id": "s11t4", "tag": "ANÁLISE", "txt": "Comparar evolução das 11 semanas nas Estatísticas" }
+    ]
+  },
+  {
+    "id": "s12", "titulo": "Semana da Prova", "periodo": "24/08 a 30/08 — PROVA DOMINGO 30/08",
+    "meta": "Quem chegou até aqui treinado não muda estratégia: revisão leve, sono e frieza.",
+    "tarefas": [
+      { "id": "s12t1", "tag": "LEVE", "txt": "Seg-Qua: 30 questões/dia só de Ética + 2 piores disciplinas" },
+      { "id": "s12t2", "tag": "LEVE", "txt": "Qui: reler resumos de Ética e Top 5 de Constitucional/Civil" },
+      { "id": "s12t3", "tag": "DESCANSO", "txt": "Sex/Sáb: revisão leve por áudio, separar documentos, dormir cedo" },
+      { "id": "s12t4", "tag": "PROVA", "txt": "DOMINGO 30/08: chegar 1h antes · caneta preta transparente · documento original" }
+    ]
+  },
+  {
+    "id": "f2", "titulo": "2ª FASE — Peça e discursivas (após a 1ª fase)", "periodo": "31/08 a 18/10",
+    "meta": "Não espere o resultado para começar: quem começa a 2ª fase no dia 31/08 chega 3 semanas à frente.",
+    "tarefas": [
+      { "id": "f2t1", "tag": "ESCOLHA", "txt": "Confirmar a área escolhida e baixar provas anteriores da 2ª fase (FGV)" },
+      { "id": "f2t2", "tag": "MODELOS", "txt": "Dominar a estrutura das 4-5 peças mais cobradas da sua área" },
+      { "id": "f2t3", "tag": "TREINO", "txt": "1 peça completa por semana corrigida no módulo '2ª Fase — Correção IA'" },
+      { "id": "f2t4", "tag": "TREINO", "txt": "4 questões discursivas por semana (corrigidas na IA)" },
+      { "id": "f2t5", "tag": "VADE", "txt": "Treinar consulta rápida ao Vade Mecum (marcação permitida: só remissões)" },
+      { "id": "f2t6", "tag": "PROVA", "txt": "DOMINGO 18/10: 2ª fase — peça + 4 questões em 5h" }
+    ]
+  }
+]
