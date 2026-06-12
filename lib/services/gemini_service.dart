@@ -58,14 +58,22 @@ class GeminiService {
     if (resp.statusCode != 200) {
       throw Exception('Erro Gemini: ${resp.statusCode}');
     }
-    final data = jsonDecode(resp.body) as Map<String, dynamic>;
-    final candidates = data['candidates'] as List?;
-    if (candidates == null || candidates.isEmpty) throw Exception('Sem resposta');
-    final content = candidates.first['content'] as Map?;
-    final parts = (content?['parts'] as List?)
-        ?.where((p) => (p as Map)['thought'] != true)
-        .toList();
-    if (parts == null || parts.isEmpty) throw Exception('Sem conteúdo');
-    return parts.map((p) => (p as Map)['text'] as String? ?? '').join('').trim();
+    final data = jsonDecode(resp.body);
+    if (data is! Map) throw Exception('Resposta inesperada do Gemini');
+    final candidates = data['candidates'];
+    if (candidates is! List || candidates.isEmpty) throw Exception('Sem resposta do Gemini');
+    final first = candidates.first;
+    if (first is! Map) throw Exception('Candidato inválido');
+    final content = first['content'];
+    if (content is! Map) throw Exception('Sem conteúdo');
+    final parts = content['parts'];
+    if (parts is! List || parts.isEmpty) throw Exception('Sem partes');
+    final text = parts
+        .where((p) => p is Map && p['thought'] != true)
+        .map((p) => (p is Map && p['text'] is String) ? p['text'] as String : '')
+        .join('')
+        .trim();
+    if (text.isEmpty) throw Exception('Resposta vazia do Gemini');
+    return text;
   }
 }
