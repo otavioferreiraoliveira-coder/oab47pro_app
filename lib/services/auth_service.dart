@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AuthService {
   static final _client = Supabase.instance.client;
@@ -23,6 +24,7 @@ class AuthService {
     await _client.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: _redirectUrl,
+      authScreenLaunchMode: LaunchMode.externalApplication,
     );
   }
 

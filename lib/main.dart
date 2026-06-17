@@ -10,7 +10,10 @@ import 'screens/home_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey); // ignore: deprecated_member_use
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+  );
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppProvider(),
