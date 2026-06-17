@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../config/supabase_config.dart';
+import '../providers/app_provider.dart';
 
 class BibliotecaScreen extends StatefulWidget {
   const BibliotecaScreen({super.key});
@@ -33,6 +35,17 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
     'bloco3': '📘 BLOCO 3',
     'provas': '📂 Provas anteriores',
   };
+
+  static String _chavePdf(String bloco, String pasta, String nome) =>
+      'pdf_$bloco|$pasta|${nome.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '')}';
+
+  bool _jaLido(AppProvider app, String bloco, String pasta, String nome) {
+    final v = app.estado.plano[_chavePdf(bloco, pasta, nome)];
+    return (v is Map) && (v['done'] == true);
+  }
+
+  int _qtdLidos(AppProvider app, String bloco, String pasta, List<_PdfItem> items) =>
+      items.where((p) => _jaLido(app, bloco, pasta, p.nome)).length;
 
   @override
   void initState() {
@@ -244,12 +257,14 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
   }
 
   Widget _buildLista() {
+    final app = context.watch<AppProvider>();
     return ListView(
       padding: const EdgeInsets.all(12),
       children: _arvore.entries.map((blocoEntry) {
         final bloco = blocoEntry.key;
         final pastas = blocoEntry.value;
         final total = pastas.values.fold(0, (s, l) => s + l.length);
+        final lidos = pastas.entries.fold(0, (s, e) => s + _qtdLidos(app, bloco, e.key, e.value));
         final aberto = _abertos.contains(bloco);
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -267,6 +282,13 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
                           style: const TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
                       Text('$total PDFs', style: const TextStyle(color: textMuted, fontSize: 11)),
                     ])),
+                    if (lidos > 0)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(color: green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: green.withValues(alpha: 0.4))),
+                        child: Text('$lidos/$total lidos', style: const TextStyle(color: green, fontSize: 10, fontWeight: FontWeight.w600)),
+                      ),
                     Icon(aberto ? Icons.expand_less : Icons.expand_more, color: textMuted, size: 20),
                   ]),
                 ),
@@ -275,15 +297,20 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
                 ...pastas.entries.map((pastaEntry) {
                   final pasta = pastaEntry.key;
                   final arquivos = pastaEntry.value;
+                  final lidosPasta = _qtdLidos(app, bloco, pasta, arquivos);
                   return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
                       color: navy,
-                      child: Text(pasta == '_raiz' ? 'Arquivos gerais' : pasta,
-                          style: const TextStyle(color: orange, fontSize: 11, fontWeight: FontWeight.w600)),
+                      child: Row(children: [
+                        Expanded(child: Text(pasta == '_raiz' ? 'Arquivos gerais' : pasta,
+                            style: const TextStyle(color: orange, fontSize: 11, fontWeight: FontWeight.w600))),
+                        if (lidosPasta > 0)
+                          Text('$lidosPasta/${arquivos.length}', style: const TextStyle(color: green, fontSize: 10)),
+                      ]),
                     ),
-                    ...arquivos.map((pdf) => _buildPdfItem(pdf)),
+                    ...arquivos.map((pdf) => _buildPdfItem(pdf, bloco, pasta, app)),
                   ]);
                 }),
             ],
@@ -293,10 +320,12 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
     );
   }
 
-  Widget _buildPdfItem(_PdfItem pdf) {
+  Widget _buildPdfItem(_PdfItem pdf, String bloco, String pasta, AppProvider app) {
     final key = pdf.url;
     final baixandoAgora = _baixando.containsKey(key);
     final prog = _baixando[key];
+    final chave = _chavePdf(bloco, pasta, pdf.nome);
+    final lido = _jaLido(app, bloco, pasta, pdf.nome);
 
     return FutureBuilder<bool>(
       future: _jaDownloadado(pdf.url),
@@ -309,26 +338,43 @@ class _BibliotecaScreenState extends State<BibliotecaScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Icon(salvo ? Icons.picture_as_pdf : Icons.picture_as_pdf_outlined,
-                    color: salvo ? orange : red, size: 16),
-                const SizedBox(width: 10),
+                    color: salvo ? orange : textMuted, size: 16),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Text(pdf.nome.replaceAll('.pdf', '').replaceAll('.PDF', ''),
-                      style: const TextStyle(color: textPrimary, fontSize: 12),
+                  child: Text(pdf.nome.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), ''),
+                      style: TextStyle(
+                        color: lido ? textMuted : textPrimary,
+                        fontSize: 12,
+                        decoration: lido ? TextDecoration.lineThrough : TextDecoration.none,
+                      ),
                       maxLines: 2, overflow: TextOverflow.ellipsis),
                 ),
-                if (salvo)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 6),
-                    child: Icon(Icons.check_circle, color: green, size: 14),
-                  )
-                else if (!baixandoAgora)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 6),
-                    child: Icon(Icons.open_in_new, color: textMuted, size: 14),
+                const SizedBox(width: 8),
+                // Botão Lido
+                GestureDetector(
+                  onTap: () => app.atualizarPlano(chave, !lido),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: lido ? green.withValues(alpha: 0.15) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: lido ? green : navyBorder, width: 1.2),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(lido ? Icons.check_circle : Icons.radio_button_unchecked,
+                          color: lido ? green : textMuted, size: 12),
+                      const SizedBox(width: 4),
+                      Text('Lido', style: TextStyle(color: lido ? green : textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
+                    ]),
                   ),
+                ),
               ]),
-              if (salvo)
-                const Text('Salvo no app', style: TextStyle(color: green, fontSize: 10)),
+              if (salvo && !baixandoAgora)
+                const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Text('Salvo no app', style: TextStyle(color: textMuted, fontSize: 10)),
+                ),
               if (baixandoAgora && prog != null) ...[
                 const SizedBox(height: 6),
                 ClipRRect(

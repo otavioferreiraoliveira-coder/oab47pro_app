@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
   static final _client = Supabase.instance.client;
+  static const _redirectUrl = 'com.oab47pro.oab47pro_app://login-callback/';
 
   static User? get currentUser => _client.auth.currentUser;
   static Session? get currentSession => _client.auth.currentSession;
@@ -16,6 +17,13 @@ class AuthService {
       password: password,
     );
     if (resp.user == null) throw Exception('Credenciais inválidas');
+  }
+
+  static Future<void> signInWithGoogle() async {
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: _redirectUrl,
+    );
   }
 
   static Future<void> signOut() async {
