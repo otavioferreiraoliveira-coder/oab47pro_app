@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class AuthService {
   static final _client = Supabase.instance.client;
-  static const _redirectUrl = 'https://oab47pro.vercel.app/';
+  static const _redirectUrl = 'com.oab47pro.oab47pro_app://login-callback';
 
   static User? get currentUser => _client.auth.currentUser;
   static Session? get currentSession => _client.auth.currentSession;
