@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,23 +35,24 @@ class OAB47ProApp extends StatelessWidget {
 
 class _AuthGate extends StatefulWidget {
   const _AuthGate();
-
   @override
   State<_AuthGate> createState() => _AuthGateState();
 }
 
 class _AuthGateState extends State<_AuthGate> {
+  late final StreamSubscription<AuthState> _sub;
   bool _loggedIn = Supabase.instance.client.auth.currentUser != null;
 
   @override
   void initState() {
     super.initState();
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    // Armazena a subscription para evitar garbage collection
+    _sub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (!mounted) return;
       final logado = data.session != null;
       if (logado != _loggedIn) {
-        if (!mounted) return;
         setState(() => _loggedIn = logado);
-        if (logado && mounted) context.read<AppProvider>().carregar();
+        if (logado) context.read<AppProvider>().carregar();
       }
     });
     if (_loggedIn) {
@@ -61,8 +63,13 @@ class _AuthGateState extends State<_AuthGate> {
   }
 
   @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!_loggedIn) return const LoginScreen();
-    return const HomeShell();
+    return _loggedIn ? const HomeShell() : const LoginScreen();
   }
 }

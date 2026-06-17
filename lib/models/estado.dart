@@ -211,7 +211,13 @@ class EstadoApp {
     for (final s in remote.simulados) {
       if (!ids.contains(s.id)) simulados.add(s);
     }
-    plano.addAll(remote.plano);
+    // Merge por timestamp — o mais recente vence (evita remote sobrescrever local recem alterado)
+    for (final e in remote.plano.entries) {
+      final cur = plano[e.key];
+      final remoteTs = (e.value is Map) ? ((e.value as Map)['ts'] as num?)?.toInt() ?? 0 : 0;
+      final curTs = (cur is Map) ? ((cur as Map)['ts'] as num?)?.toInt() ?? 0 : 0;
+      if (cur == null || remoteTs > curTs) plano[e.key] = e.value;
+    }
     cacheIA.addAll(remote.cacheIA);
     if (remote.configTs > configTs) {
       config = remote.config;
