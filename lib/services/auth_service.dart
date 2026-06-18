@@ -3,7 +3,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 class AuthService {
   static final _client = Supabase.instance.client;
-  static const _redirectUrl = 'com.oab47pro.oab47pro_app://login-callback';
+  // IMPORTANTE: o scheme NÃO pode conter underscore — schemes de URI inválidos
+  // (RFC 3986) fazem o GoTrue/Supabase rejeitar o redirect e cair no Site URL.
+  static const _redirectUrl = 'com.oab47pro.app://login-callback';
 
   static User? get currentUser => _client.auth.currentUser;
   static Session? get currentSession => _client.auth.currentSession;
