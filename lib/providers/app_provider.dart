@@ -14,6 +14,7 @@ class AppProvider extends ChangeNotifier {
   EstadoApp estado = EstadoApp();
   bool carregado = false;
   bool syncOk = false;
+  DateTime? ultimoSync;
   Timer? _syncTimer;
 
   Future<void> carregar() async {
@@ -47,6 +48,7 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> sincronizar() async {
     syncOk = await SyncService.syncToSupabase(estado);
+    if (syncOk) ultimoSync = DateTime.now();
     notifyListeners();
   }
 

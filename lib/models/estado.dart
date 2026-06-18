@@ -90,10 +90,11 @@ class ConfigApp {
   });
 
   bool get temChave => gemini.isNotEmpty || deepseek.isNotEmpty;
-  String get provedorAtivo =>
-      (aiProvider == 'deepseek' && deepseek.isNotEmpty)
-          ? 'deepseek'
-          : (gemini.isNotEmpty ? 'gemini' : (deepseek.isNotEmpty ? 'deepseek' : 'gemini'));
+  // Respeita a escolha explicita do usuario (radio Gemini/DeepSeek), padrao Gemini.
+  String get provedorAtivo => aiProvider == 'deepseek' ? 'deepseek' : 'gemini';
+  // A chave do provedor atualmente selecionado esta preenchida?
+  bool get temChaveAtiva =>
+      provedorAtivo == 'deepseek' ? deepseek.isNotEmpty : gemini.isNotEmpty;
 
   factory ConfigApp.fromJson(Map<String, dynamic> j) => ConfigApp(
         nome: j['nome'] as String? ?? '',

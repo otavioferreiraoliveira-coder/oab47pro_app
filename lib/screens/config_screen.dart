@@ -62,6 +62,18 @@ class _ConfigScreenState extends State<ConfigScreen> {
       aiProvider: _aiProvider,
       syncChaveApi: _syncChaveApi,
     ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(children: [
+          Icon(Icons.check_circle, color: Colors.white, size: 18),
+          SizedBox(width: 8),
+          Text('Configurações salvas'),
+        ]),
+        backgroundColor: green,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) setState(() => _salvando = false);
     });
@@ -201,7 +213,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
           const SizedBox(height: 20),
           _secao('Sincronização'),
-          // Código de sync Web ↔ App
+          // Sincronização automática pela conta Google (sem código manual)
           Container(
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
@@ -211,49 +223,36 @@ class _ConfigScreenState extends State<ConfigScreen> {
               border: Border.all(color: navyBorder),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('📱 Código de Sincronização (Web ↔ App)',
-                  style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              const Text(
-                'Para sincronizar o Mentor IA entre site e app, use o mesmo código nos dois lados.',
-                style: TextStyle(color: textMuted, fontSize: 11),
+              const Row(children: [
+                Icon(Icons.sync, color: green, size: 16),
+                SizedBox(width: 6),
+                Text('Sincronização automática',
+                    style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+              ]),
+              const SizedBox(height: 6),
+              Text(
+                user?.email != null
+                    ? 'Seus dados sincronizam entre o site e o app automaticamente pela sua conta Google (${user!.email}). Não é preciso código.'
+                    : 'Seus dados sincronizam automaticamente pela sua conta. Não é preciso código.',
+                style: const TextStyle(color: textMuted, fontSize: 11, height: 1.4),
               ),
               const SizedBox(height: 10),
               Row(children: [
+                const Text('ID: ', style: TextStyle(color: textMuted, fontSize: 11)),
                 Expanded(
-                  child: TextField(
-                    controller: _syncCodeCtrl,
-                    style: const TextStyle(color: textPrimary, fontSize: 12),
-                    decoration: const InputDecoration(
-                      labelText: 'Código de sync',
-                      prefixIcon: Icon(Icons.link, size: 16, color: textMuted),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                  ),
+                  child: Text(_syncCodeCtrl.text,
+                      style: const TextStyle(color: textSecondary, fontSize: 11),
+                      overflow: TextOverflow.ellipsis),
                 ),
-                const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.copy, color: textMuted, size: 18),
-                  tooltip: 'Copiar',
+                  icon: const Icon(Icons.copy, color: textMuted, size: 16),
+                  tooltip: 'Copiar ID',
+                  visualDensity: VisualDensity.compact,
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: _syncCodeCtrl.text));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Código copiado!')),
+                      const SnackBar(content: Text('ID copiado!')),
                     );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.save_outlined, color: orange, size: 18),
-                  tooltip: 'Salvar código',
-                  onPressed: () async {
-                    final v = _syncCodeCtrl.text.trim();
-                    if (v.isEmpty) return;
-                    await SyncService.setUid(v);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Código salvo! Sincronize agora.')),
-                      );
-                    }
                   },
                 ),
               ]),
@@ -269,7 +268,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
             leading: const Icon(Icons.storage_outlined, color: textSecondary),
             title: 'Status',
             sub: app.syncOk
-                ? 'Último sync: OK'
+                ? (app.ultimoSync != null
+                    ? 'Último sync: OK · ${_fmtDataHora(app.ultimoSync!)}'
+                    : 'Último sync: OK')
                 : 'Offline — dados salvos localmente',
           ),
 
@@ -307,6 +308,11 @@ class _ConfigScreenState extends State<ConfigScreen> {
         ],
       ),
     );
+  }
+
+  String _fmtDataHora(DateTime d) {
+    String d2(int n) => n.toString().padLeft(2, '0');
+    return '${d2(d.day)}/${d2(d.month)}/${d.year} ${d2(d.hour)}:${d2(d.minute)}';
   }
 
   Widget _secao(String label) {

@@ -143,9 +143,10 @@ class _MentorScreenState extends State<MentorScreen> {
     final app = context.read<AppProvider>();
     final cfg = app.estado.config;
 
-    if (!cfg.temChave) {
+    if (!cfg.temChaveAtiva) {
+      final nome = cfg.provedorAtivo == 'deepseek' ? 'DeepSeek' : 'Gemini';
       setState(() {
-        _msgs.add({'role': 'model', 'text': 'Configure sua chave Gemini ou DeepSeek em Configurações para usar o Mentor.'});
+        _msgs.add({'role': 'model', 'text': 'Configure sua chave $nome em Configurações (ou troque o provedor) para usar o Mentor.'});
       });
       return;
     }
@@ -319,6 +320,10 @@ DESEMPENHO DO ALUNO:
 
   @override
   Widget build(BuildContext context) {
+    final cfg = context.watch<AppProvider>().estado.config;
+    final usandoDeepseek = cfg.provedorAtivo == 'deepseek';
+    final iaNome = usandoDeepseek ? 'DeepSeek' : 'Gemini';
+    const roxo = Color(0xFF8B5CF6);
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -340,6 +345,24 @@ DESEMPENHO DO ALUNO:
         ),
         automaticallyImplyLeading: false,
         actions: [
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: roxo.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: roxo.withValues(alpha: 0.55)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.auto_awesome, size: 11, color: roxo),
+                const SizedBox(width: 4),
+                Text(iaNome,
+                    style: const TextStyle(
+                        color: roxo, fontSize: 11, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+          ),
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.add_comment_outlined, size: 20),
             tooltip: 'Nova conversa',
