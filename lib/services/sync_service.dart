@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../models/estado.dart';
 
@@ -9,9 +10,12 @@ const _uidKey = 'oab47-uid';
 const _tableName = 'progresso';
 
 class SyncService {
-  // ID fixo compartilhado — mesmo ID em web e Flutter (app pessoal)
-  // Web usa localStorage["oab47-uid"] ou "oab47pro_user_main" como fallback
+  // user_id do sync = id do usuário Google logado (mesma conta no web e no
+  // Flutter compartilha os dados automaticamente). Sem login, cai no uid manual
+  // (oab47-uid) e, por fim, no id legado compartilhado.
   static Future<String> getUid() async {
+    final authId = Supabase.instance.client.auth.currentUser?.id;
+    if (authId != null && authId.isNotEmpty) return authId;
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_uidKey);
     if (stored != null && stored.isNotEmpty) return stored;
@@ -42,6 +46,10 @@ class SyncService {
   static Future<bool> syncToSupabase(EstadoApp estado) async {
     try {
       final uid = await getUid();
+      // Preferências de chave são LOCAIS por app — capturadas antes do merge.
+      final syncChave = estado.config.syncChaveApi;
+      final localGemini = estado.config.gemini;
+      final localDeepseek = estado.config.deepseek;
       final headers = {
         'apikey': supabaseAnonKey,
         'Authorization': 'Bearer $supabaseAnonKey',
@@ -61,13 +69,26 @@ class SyncService {
           estado.mergeFrom(remote);
         }
       }
+      // O toggle é sempre local; quando desligado, mantém também as chaves locais
+      // (não aceita as do remoto).
+      estado.config = estado.config.copyWith(
+        syncChaveApi: syncChave,
+        gemini: syncChave ? null : localGemini,
+        deepseek: syncChave ? null : localDeepseek,
+      );
+      // Monta o payload; sem sync de chave, a chave paga não vai para a tabela.
+      final dados = estado.toJson();
+      if (!syncChave) {
+        (dados['config'] as Map)['gemini'] = '';
+        (dados['config'] as Map)['deepseek'] = '';
+      }
       // Upsert local → remoto
       await http.post(
         Uri.parse('$supabaseUrl/rest/v1/$_tableName'),
         headers: headers,
         body: jsonEncode({
           'user_id': uid,
-          'dados': estado.toJson(),
+          'dados': dados,
           'atualizado_em': DateTime.now().toIso8601String(),
         }),
       );

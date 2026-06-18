@@ -72,6 +72,10 @@ class ConfigApp {
   final String aiProvider;
   final String ttsVoz;
   final double ttsVel;
+  // Preferência LOCAL por app: se true, a chave de API sincroniza entre
+  // dispositivos pelo servidor; se false (padrão), cada app usa a sua própria
+  // chave e a chave paga nunca é enviada para a tabela compartilhada.
+  final bool syncChaveApi;
 
   const ConfigApp({
     this.nome = '',
@@ -82,6 +86,7 @@ class ConfigApp {
     this.aiProvider = 'gemini',
     this.ttsVoz = '',
     this.ttsVel = 1.0,
+    this.syncChaveApi = false,
   });
 
   bool get temChave => gemini.isNotEmpty || deepseek.isNotEmpty;
@@ -99,6 +104,7 @@ class ConfigApp {
         aiProvider: j['aiProvider'] as String? ?? 'gemini',
         ttsVoz: j['ttsVoz'] as String? ?? '',
         ttsVel: (j['ttsVel'] as num?)?.toDouble() ?? 1.0,
+        syncChaveApi: j['syncChaveApi'] == true,
       );
 
   Map<String, dynamic> toJson() => {
@@ -110,6 +116,7 @@ class ConfigApp {
         'aiProvider': aiProvider,
         'ttsVoz': ttsVoz,
         'ttsVel': ttsVel,
+        'syncChaveApi': syncChaveApi,
       };
 
   ConfigApp copyWith({
@@ -121,6 +128,7 @@ class ConfigApp {
     String? aiProvider,
     String? ttsVoz,
     double? ttsVel,
+    bool? syncChaveApi,
   }) =>
       ConfigApp(
         nome: nome ?? this.nome,
@@ -131,6 +139,7 @@ class ConfigApp {
         aiProvider: aiProvider ?? this.aiProvider,
         ttsVoz: ttsVoz ?? this.ttsVoz,
         ttsVel: ttsVel ?? this.ttsVel,
+        syncChaveApi: syncChaveApi ?? this.syncChaveApi,
       );
 }
 

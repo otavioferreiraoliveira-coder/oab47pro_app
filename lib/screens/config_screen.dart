@@ -22,6 +22,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
   String _modelo = 'gemini-2.0-flash';
   String _deepseekModelo = 'deepseek-chat';
   String _aiProvider = 'gemini';
+  bool _syncChaveApi = false;
   bool _salvando = false;
 
   @override
@@ -34,6 +35,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
     _modelo = cfg.modelo.isNotEmpty ? cfg.modelo : 'gemini-2.0-flash';
     _deepseekModelo = cfg.deepseekModelo.isNotEmpty ? cfg.deepseekModelo : 'deepseek-chat';
     _aiProvider = cfg.aiProvider.isNotEmpty ? cfg.aiProvider : 'gemini';
+    _syncChaveApi = cfg.syncChaveApi;
     SyncService.getUid().then((uid) {
       if (mounted) setState(() => _syncCodeCtrl.text = uid);
     });
@@ -58,6 +60,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       deepseek: _deepseekCtrl.text.trim(),
       deepseekModelo: _deepseekModelo,
       aiProvider: _aiProvider,
+      syncChaveApi: _syncChaveApi,
     ));
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) setState(() => _salvando = false);
@@ -164,6 +167,37 @@ class _ConfigScreenState extends State<ConfigScreen> {
           const Text('Modelo DeepSeek', style: TextStyle(color: textSecondary, fontSize: 13)),
           const SizedBox(height: 6),
           _dropDeepSeekModelo(),
+
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: navyLight,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: navyBorder),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Expanded(
+                  child: Text('Sincronizar a chave de API entre dispositivos',
+                      style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+                Switch(
+                  value: _syncChaveApi,
+                  onChanged: (v) => setState(() => _syncChaveApi = v),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              Text(
+                _syncChaveApi
+                    ? 'Ligado: chave ÚNICA. A mesma chave é compartilhada entre o web e o app. '
+                        'Cômodo, mas o gasto dos dois fica somado na mesma chave e ela é guardada no servidor.'
+                    : 'Desligado (recomendado): chave SEPARADA por app. Cada app usa a sua própria chave — '
+                        'permite acompanhar o gasto de cada um no painel do DeepSeek e a chave não é enviada ao servidor.',
+                style: const TextStyle(color: textMuted, fontSize: 11, height: 1.4),
+              ),
+            ]),
+          ),
 
           const SizedBox(height: 20),
           _secao('Sincronização'),
